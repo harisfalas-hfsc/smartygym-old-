@@ -332,6 +332,14 @@ serve(async (req) => {
   const nowMs = Date.now();
   const freeze = await loadFreezeInfo(supabase);
 
+  // System frozen → send nothing (no daily report, no alerts) unless an admin forces it.
+  if (freeze.frozen && !force) {
+    console.log("[FREEZE] Skipping cron-heartbeat — system is frozen");
+    return new Response(JSON.stringify({ success: true, skipped: true, reason: "system_frozen" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   await supabase.rpc("sync_cron_metadata_from_live_scheduler");
 
   const { data: jobs, error } = await supabase
